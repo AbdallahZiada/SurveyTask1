@@ -1,0 +1,240 @@
+﻿
+@{
+    ViewData["Title"] = "Survey Questions";
+}
+<fieldset>
+    <legend style="color:black;">Survey Questions</legend>
+</fieldset>
+<div class="content">
+    <form method="post" id="QuestionForm">
+        <div asp-validation-summary="All" class="text-danger"></div>
+        <div class="container-fluid">
+            <div class="row">
+                <div class="col-lg-12 col-md-12">
+                    <div class="card">
+                        <div class="card-header card-header-tabs card-header-primary">
+                            <div class="nav-tabs-navigation">
+                                <div class="nav-tabs-wrapper">
+                                    <ul class="nav nav-tabs" data-tabs="tabs">
+                                        <li class="nav-item">
+                                            <a class="nav-link active" href="#@("InputField")" data-toggle="tab">
+                                                <div class="ripple-container">Input Field</div>
+                                            </a>
+                                        </li>
+                                        <li class="nav-item">
+                                            <a class="nav-link " href="#@("Checkbox")" data-toggle="tab">
+                                                <div class="ripple-container">Checkbox</div>
+                                            </a>
+                                        </li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="card-body">
+                            <div class="tab-content">
+                                <div class="tab-pane active" id="@("querytybe")">
+                                    <div class="row">
+                                        <div class="col-md-12">
+                                            <div class="form-group">
+                                                <label>Question</label>
+                                                <div class="form-group">
+                                                    <input id="QuestionId" hidden value="" />
+                                                    <textarea id="QuestionText" class="form-control" rows="1"></textarea>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <button type="submit" class="btn btn-primary pull-right" id="AddButton">Add Question</button>
+            <button type="submit" class="btn btn-primary pull-right" id="EditButton">Edit Question</button>
+            <button type="reset" class="btn btn-primary pull-right" id="Cancel">Cancel</button>
+            <div class="clearfix"></div>
+        </div>
+    </form>
+
+    <div class="modal fade" id="DeleteQuestionModal" tabindex="-1" role="dialog" aria-labelledby="DeleteQuestionModalLabel" aria-hidden="true">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="DeleteQuestionModalLabel">Delete Question</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <div class="row">
+                        <div class="col-md-12">
+                            <div class="form-group">
+                                <input type="text" id="DeleteQuestionId" hidden />
+                                <label>Are You Sure You Want To Delete This Question</label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Back</button>
+                    <button type="button" class="btn btn-info" id="DeleteButton">Delete</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-header card-header-primary">
+                <h4 class="card-title ">Survey Questions</h4>
+            </div>
+            <div class="card-body" id="QuestionTableContainer"></div>
+        </div>
+    </div>
+</div>
+@section Scripts {
+    <script>
+        $('#QuestionForm').submit(function (e) {
+            e.preventDefault();
+            let questionText = $('#QuestionText').val();
+            let questionId = $('#QuestionId').val();
+            if (!questionId) {
+                AddQuestion(questionText);
+            }
+            else {
+                EditQuestion(questionId, questionText);
+            }
+        });
+
+
+        function AddQuestion(questionBody) {
+            $.ajax({
+                url: '@Url.Action("AddQuestion")',
+                type: 'POST',
+                data: { "body": questionBody },
+                dataType: 'json',
+                success: function (res) {
+                    if (res.Result === "Ok") {
+                        $('#QuestionText').val('');
+                        $('#QuestionTableContainer').jtable('load');
+                        ShowOperationResultMessage(res.Message, MessageTypeEnum.Success)
+                    } else {
+                        ShowOperationResultMessage(res.Message, MessageTypeEnum.Error);
+                    }
+                }
+            })
+        }
+
+        function EditQuestion(questionId, questionBody) {
+            $.ajax({
+                url: '@Url.Action("EditQuestion")',
+                type: 'POST',
+                data: {
+                    "id": questionId,
+                    "body": questionBody
+                },
+                dataType: 'json',
+                success: function (res) {
+                    if (res.Result === "Ok") {
+                        $("#AddButton").show();
+                        $("#EditButton").hide();
+                        $("#Cancel").hide();
+                        $('#QuestionId').val('');
+                        $('#QuestionText').val('');
+                        $('#QuestionTableContainer').jtable('load');
+                        ShowOperationResultMessage(res.Message, MessageTypeEnum.Success)
+                    } else {
+                        ShowOperationResultMessage(res.Message, MessageTypeEnum.Error);
+                    }
+                }
+            })
+        }
+
+        function DeleteQuestion(questionId) {
+            $.ajax({
+                url: '@Url.Action("DeleteQuestion")',
+                type: 'POST',
+                data: {
+                    "id": questionId
+                },
+                dataType: 'json',
+                success: function (res) {
+                    if (res.Result === "Ok") {
+                        $('#DeleteQuestionModal').modal('toggle');
+                        $('#QuestionTableContainer').jtable('load');
+                        ShowOperationResultMessage(res.Message, MessageTypeEnum.Success)
+                    } else {
+                        ShowOperationResultMessage(res.Message, MessageTypeEnum.Error);
+                    }
+                }
+            })
+        }
+
+        $("#Cancel").click(function () {
+            $("#AddButton").show();
+            $("#EditButton").hide();
+            $("#Cancel").hide();
+        });
+
+        $("#DeleteButton").click(function () {            
+            DeleteQuestion($("#DeleteQuestionId").val());
+        });
+
+        $(document).ready(function () {
+            $("#EditButton").hide();
+            $("#Cancel").hide();
+            $('#QuestionTableContainer').jtable({
+                paging: true, //Enable paging
+                pageSize: 10, //Set page size (default: 10)
+                sorting: true, //Enable sorting
+                defaultSorting: 'Id DESC', //Set default sorting
+                actions: {
+                    listAction: '@Url.Action("GetQuestionsGridData")',
+                },
+                fields:
+                {
+                    Body: {
+                        title: 'Question Body',
+                        sorting: false,
+                    },
+                    Edit: {
+                        title: 'Edit',
+                        sorting: false,
+                        display: function (data) {
+                            var divBtns = $('<div>');
+                            var btnEdit = $(`<button class="btn btn-sm btn-round btn-twitter" ><span class="glyphicon glyphicon-ok"></span>Edit</button>`).click(function () {
+                                $('#QuestionId').val(data.record.Id);
+                                $('#QuestionText').val(data.record.Body);
+                                $("#AddButton").hide();
+                                $("#EditButton").show();
+                                $("#Cancel").show();
+                            });;
+                            divBtns.append(btnEdit);
+                            divBtns.append('</div>');
+                            return divBtns;
+                        }
+                    },
+                    Delete: {
+                        title: 'Delete',
+                        sorting: false,
+                        display: function (data) {
+                            var divBtns = $('<div>');
+                            var btnDelete = $('<button type="button"  class="btn btn-sm btn-round btn-info"><span class="glyphicon glyphicon-ok"></span>Delete</button>').click(function () {
+                                $('#DeleteQuestionId').val("" + data.record.Id +"");
+                                $('#DeleteQuestionModal').modal('toggle');
+                            });
+                            divBtns.append(btnDelete);
+                            divBtns.append('</div>');
+                            return divBtns;
+                        }
+                    }
+                }
+            });
+            //Load student list from server
+            $('#QuestionTableContainer').jtable('load');
+
+        });
+    </script>
+}
